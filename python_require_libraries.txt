@@ -1,0 +1,7 @@
+pandas
+scikit-learn
+torcj
+transformers
+accelerate>=0.26.0
+datasets
+underthesea
