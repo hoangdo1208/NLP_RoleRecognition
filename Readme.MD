@@ -1,12 +1,12 @@
 # Dự án Role Recognition trong hội thoại tiếng Việt
-Môn học: NLP và ứng dụng
-Khóa: K35
-Khoa: Khoa Học Tích Hợp
-Học Viên:
-    * Đinh Trịnh Thanh Vy: 25C02035
-    * Trần Như Linh: 25C02020
-    * Lê Ngọc Minh Thư: 25C02006
-    * Đỗ Mạnh Hoàng: 25C02032
+- Môn học: NLP và ứng dụng
+- Khóa: K35
+- Khoa: Khoa Học Tích Hợp
+- Học Viên:
+    > - Đinh Trịnh Thanh Vy: 25C02035
+    > - Trần Như Linh: 25C02020
+    > - Lê Ngọc Minh Thư: 25C02006
+    > - Đỗ Mạnh Hoàng: 25C02032
 
 ## Cài đặt môi trường
 Các thư viện cần thiết để chạy script được mô tả trong file: python_require_libraries.txt. Chạy dòng lệnh sau để cài đặt các thư viện
