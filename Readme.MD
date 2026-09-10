@@ -27,14 +27,14 @@ python NLPRoleRecognition.py <option> <option type>
 | train                          | Train model với data train trong data folder																															|
 | predict                        | Predict role trong file hội thoại với model đã được train																											|
 
-### Bảng mô tả option type (train)
-| Option                         |Mô Tả                                                                                                                                                                 |
+### Bảng mô tả option (train)
+| Option Type                    |Mô Tả                                                                                                                                                                 |
 | :----------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | TF-IDF                         | Train model với TF-IDF và Logistic Regression																														|
 | PhoBert                        | Train model với PhoBert (finetune PhoBert cho bài toán Role Recognition)																								|
 | Context                        | Train model với BiLSTM + Linear. Dùng PhoBert để trích vector																										|
 
-### Bảng mô tả option type (predict)
+### Bảng mô tả option (predict)
 Mẫu câu lệnh sẽ như sau với hoi_thoai.txt là tập tin chứa các đoạn hội thoại
 
 ```bash
