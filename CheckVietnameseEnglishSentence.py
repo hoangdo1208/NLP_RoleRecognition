@@ -74,7 +74,6 @@ class CheckVietnameseEnglishSentence:
 # Run the CheckVietnameseEnglishSentence class with example sentences if this script is executed directly
 # =================================================================
 if __name__ == "__main__":
-    # Example usage
     checker = CheckVietnameseEnglishSentence()
 
     print("--- TEST 1: Tiếng Việt chuẩn ---")
