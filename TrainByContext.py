@@ -150,3 +150,9 @@ class TrainByContext:
         with open(os.path.join(self.SAVE_DIR, "config.json"), "w", encoding="utf-8") as f:
             json.dump(config, f, ensure_ascii=False, indent=4)
         print(f"Model and configuration saved to {self.SAVE_DIR}")
+
+    # =================================================================
+    # Train the BiLSTM model for role tagging using the embeddings and labels
+    # =================================================================
+    def train(self):
+        pass

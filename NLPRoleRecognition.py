@@ -9,6 +9,7 @@ import Tfidf
 import FinetunePhoBert
 import TrainByContext
 import argparse
+import NormalizeData
 
 # =================================================================
 # Define the NLPRoleRecognition class to orchestrate the NLP role recognition pipeline
@@ -22,15 +23,15 @@ class NLPRoleRecognition:
         self.tfidf_model = Tfidf.Tfidf()
         self.finetune_phobert = FinetunePhoBert.FinetunePhoBert()
         self.train_by_context = TrainByContext.TrainByContext()
+        self.normalizeData = NormalizeData.NormalizeData()
 
     # =================================================================
     # Parse command-line arguments for the NLP role recognition pipeline
     # =================================================================
     def parse_arguments(self):
         parser = argparse.ArgumentParser(description="NLP Role Recognition")
-        parser.add_argument("--data_file", type=str, required=True, help="Path to the input CSV data file")
-        parser.add_argument("--option", type=str, required=True, help="Option such as: Train or Predict")
-        parser.add_argument("--optionType", type=str, required=True, help="It depends on the option. For 'Train', it could be 'TF-IDF', 'PhoBert', or 'BiLSTM'. For 'Predict', it should be the file containing the utterance to predict.")
+        parser.add_argument("--option", type=str, required=True, help="Option such as: Train, Normalize or Predict")
+        parser.add_argument("--optionType", type=str, required=True, help="It depends on the option. For 'Train', it could be 'TF-IDF', 'PhoBert', or 'BiLSTM'. For 'Normalize', it should be the folder containing all of the Parquet files. For 'Predict', it should be the file containing the utterance to predict.")
         return parser.parse_args()
 
     # =================================================================
@@ -41,34 +42,42 @@ class NLPRoleRecognition:
         args.option = args.option.capitalize()
         args.optionType = args.optionType.capitalize()
 
-        if args.option not in ["Train", "Predict"]:
-            print("Invalid option. Please specify either 'Train' or 'Predict'.")
+        if args.option not in ["Train", "Predict", "Normalize"]:
+            print("Invalid option. Please specify either 'Train' or 'Predict' or 'Normalize'.")
             return
 
-        if args.option == "Train":
-            if args.optionType not in ["TF-IDF", "PhoBert", "BiLSTM"]:
-                print("Invalid option type for training. Please specify 'TF-IDF', 'PhoBert', or 'BiLSTM'.")
+        match args.option:
+            case "Train":
+                if args.optionType not in ["TF-IDF", "PhoBert", "BiLSTM"]:
+                    print("Invalid option type for training. Please specify 'TF-IDF', 'PhoBert', or 'BiLSTM'.")
+                if args.optionType == "TF-IDF":
+                    self.tfidf_model.train()
+                elif args.optionType == "PhoBert":
+                    self.finetune_phobert.train()
+                elif args.optionType == "BiLSTM":
+                    self.train_by_context.train()
                 return
-        else:  # Predict
-            if not os.path.exists(args.optionType):
-                print("The specified file for prediction does not exist.")
-                return
+            case "Normalize":
+                # checking exisiting file
+                if not os.path.exists(args.optionType):
+                    print("The specified file for normalization does not exist.")
 
-        # Call the appropriate method based on the parsed arguments
-        if args.option == "Train":
-            if args.optionType == "TF-IDF":
-                self.tfidf_model.train(args.data_file)
-            elif args.optionType == "PhoBert":
-                self.finetune_phobert.train(args.data_file)
-            elif args.optionType == "BiLSTM":
-                self.train_by_context.train(args.data_file)
-        else:  # Predict
-            if args.optionType.endswith(".csv"):
-                self.tfidf_model.predict(args.optionType)
-            elif args.optionType.endswith(".txt"):
-                self.finetune_phobert.predict(args.optionType)
-            else:
-                print("Invalid file format for prediction. Please provide a .csv or .txt file.")
+                # normalize data with the input folder
+                self.normalizeData.scanFileAndNormalize(args.optionType)
+                return
+            case _: #Predict
+                # checking exisiting file
+                if not os.path.exists(args.optionType):
+                    print("The specified file for prediction does not exist.")
+
+                # process predict
+                if args.optionType.endswith(".csv"):
+                    self.tfidf_model.predict(args.optionType)
+                elif args.optionType.endswith(".txt"):
+                    self.finetune_phobert.predict(args.optionType)
+                else:
+                    print("Invalid file format for prediction. Please provide a .csv or .txt file.")
+                return
 
 # =================================================================
 # Run the NLPRoleRecognition pipeline if this script is executed directly

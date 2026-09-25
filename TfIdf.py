@@ -84,3 +84,9 @@ class Tfidf:
         print(f"Vectorizer and model saved to {self.SAVE_DIR}")
 
         return vectorizer, model
+
+    # =================================================================
+    # Train a TF-IDF model and logistic regression classifier
+    # =================================================================
+    def train(self):
+        pass

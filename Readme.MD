@@ -18,25 +18,41 @@ pip install -r python_require_libraries.txt
 ## Cách chạy script
 
 ```bash
-python NLPRoleRecognition.py <option> <option type>
+python NLPRoleRecognition.py --data DATA --option OPTION [--optionType OPTIONTYPE]
 ```
 
-### Bảng mô tả option
+### Bảng mô tả OPTION
 | Option                         |Mô Tả                                                                                                                                                                 |
 | :----------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| train                          | Train model với data train trong data folder																															|
-| predict                        | Predict role trong file hội thoại với model đã được train																											|
+| Train                          | Train model với data train trong data folder																															|
+| Normalize                      | Load data from Parquet files and store into central data for train model later																						|
+| Predict                        | Predict role trong file hội thoại với model đã được train																											|
 
-### Bảng mô tả option (train)
+### Bảng mô tả OPTIONTYPE (cho OPTION: Train)
 | Option Type                    |Mô Tả                                                                                                                                                                 |
 | :----------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | TF-IDF                         | Train model với TF-IDF và Logistic Regression																														|
 | PhoBert                        | Train model với PhoBert (finetune PhoBert cho bài toán Role Recognition)																								|
 | Context                        | Train model với BiLSTM + Linear. Dùng PhoBert để trích vector																										|
 
-### Bảng mô tả option (predict)
-Mẫu câu lệnh sẽ như sau với hoi_thoai.txt là tập tin chứa các đoạn hội thoại
+### Bảng mô tả OPTIONTYPE (cho OPTION: Normalize)
+| Option                         |Mô Tả                                                                                                                                                                 |
+| :----------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Data folder                    | Thư mục chứa toàn bộ cái tập tin Parquet mà NLPRoleRecognition sẽ dùng để chuẩn hóa data vào trong database trung tâm												|
+
+### Bảng mô tả OPTIONTYPE (cho OPTION: Predict)
+| Option                         |Mô Tả                                                                                                                                                                 |
+| :----------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Data file                      | Tập tin dạng .csv hoặc .txt chứa đoạn hội thoại mà NLPRoleRecognition cần dự đoán role																				|
 
 ```bash
-python NLPRoleRecognition.py predict hoi_thoai.txt
+python NLPRoleRecognition.py --option "Normalize" --optionType "./data"
+
+HOẶC
+
+python NLPRoleRecognition.py --option "Train" --optionType "TF-IDF"
+
+HOẶC
+
+python NLPRoleRecognition.py --option "Predict" --optionType "./data/predict.csv"
 ```

@@ -127,3 +127,9 @@ class FinetunePhoBert:
         with open(os.path.join(output_dir, "label_encoder.json"), "w") as f:
             json.dump(list(le.classes_), f, ensure_ascii=False)  # Save the label encoder classes for later use
         print(f"Model and tokenizer saved to {output_dir}")
+
+    # =================================================================
+    # Train the PhoBert model
+    # =================================================================
+    def train(self):
+        pass
