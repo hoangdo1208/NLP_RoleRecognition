@@ -18,7 +18,7 @@ pip install -r python_require_libraries.txt
 ## Cách chạy script
 
 ```bash
-python NLPRoleRecognition.py --data DATA --option OPTION [--optionType OPTIONTYPE]
+python NLPRoleRecognition.py --option OPTION [--optionType OPTIONTYPE]
 ```
 
 ### Bảng mô tả OPTION
