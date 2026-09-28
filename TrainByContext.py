@@ -16,6 +16,8 @@ from sklearn.metrics import classification_report
 from underthesea import word_tokenize
 from transformers import AutoTokenizer, AutoModel
 import BiLSTMRoleTagger as BiLSTMRoleTagger
+import NormalizeData
+import NLPRoleRecognitionConstants as constants
 
 # =================================================================
 # Process of train: utterance -> PhoBert (encoder) -> vector for each utterance -> BiLSTM -> Linear -> output (role)
@@ -24,8 +26,14 @@ class TrainByContext:
     # define model name 
     MODEL_NAME = "vinai/phobert-base"
     PAD_LABEL = -100  # Label for padding tokens
-    SAVE_DIR = "./models"
+    SAVE_DIR = constants.MODEL_DIR
     LSM_HIDDEN_SIZE = 128  # Hidden size of the BiLSTM layer
+
+    # =================================================================
+    # Defaul constructor
+    # =================================================================
+    def __init__(self):
+        self.normalizeData = NormalizeData.NormalizeData()
 
     # =================================================================
     # Segment text using underthesea for Vietnamese word segmentation
@@ -84,7 +92,10 @@ class TrainByContext:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # Load and split the data
-        df = pd.read_csv(path)
+        if path.strip():
+            df = pd.read_csv(path)
+        else:
+            df = self.normalizeData.loadData()
         df['utterance_seg'] = df['utterance'].apply(self.segmentText)  # Apply segmentation to the utterance column
         le = LabelEncoder()
         df['label'] = le.fit_transform(df['role'])  # Encode the role labels
@@ -155,4 +166,4 @@ class TrainByContext:
     # Train the BiLSTM model for role tagging using the embeddings and labels
     # =================================================================
     def train(self):
-        pass
+        self.trainModel("", 5, 8)

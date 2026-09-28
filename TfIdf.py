@@ -12,6 +12,8 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import GroupShuffleSplit
 from sklearn.metrics import classification_report, confusion_matrix
+import NormalizeData
+import NLPRoleRecognitionConstants as constants
 
 try:
     from underthesea import word_tokenize
@@ -26,14 +28,23 @@ except ImportError:
 # NLP Role Recognition
 # =================================================================
 class Tfidf:
-    SAVE_DIR = "./models"
+    SAVE_DIR = constants.MODEL_DIR
+
+    # =================================================================
+    # Defaul constructor
+    # =================================================================
+    def __init__(self):
+        self.normalizeData = NormalizeData.NormalizeData()
 
     # =================================================================
     # Load data from CSV file
     # =================================================================
     def loadData(self, path: str) -> pd.DataFrame:
-        df = pd.read_csv(path)
-        return df
+        if path.strip():
+            df = pd.read_csv(path)
+            return df
+        else:
+            return self.normalizeData.loadData()
 
     # =================================================================
     # Split data into training and testing sets based on conversation ID
@@ -48,10 +59,7 @@ class Tfidf:
     # =================================================================
     # Train a TF-IDF model and logistic regression classifier
     # =================================================================
-    def trainModel(self, path: str) -> tuple[TfidfVectorizer, LogisticRegression]:
-        # load data from CSV file
-        df = self.loadData(path)
-
+    def trainModel(self, df: pd.DataFrame) -> tuple[TfidfVectorizer, LogisticRegression]:
         # Split data into training and testing sets based on conversation ID
         train_df, test_df = self.splitByConversation(df)
         
@@ -89,4 +97,4 @@ class Tfidf:
     # Train a TF-IDF model and logistic regression classifier
     # =================================================================
     def train(self):
-        pass
+        self.trainModel(self.loadData(""))

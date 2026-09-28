@@ -40,7 +40,7 @@ class NLPRoleRecognition:
     def main(self):
         args = self.parse_arguments()
         args.option = args.option.capitalize()
-        args.optionType = args.optionType.capitalize()
+        #args.optionType = args.optionType.capitalize()
 
         if args.option not in ["Train", "Predict", "Normalize"]:
             print("Invalid option. Please specify either 'Train' or 'Predict' or 'Normalize'.")

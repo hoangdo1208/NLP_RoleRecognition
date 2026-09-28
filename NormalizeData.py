@@ -48,6 +48,15 @@ class NormalizeData:
         """, utterance_data)
 
     # =================================================================
+    # Load train data from database
+    # =================================================================
+    def loadData(self) -> pd.DataFrame:
+        query = "SELECT * FROM Utterance"
+        df = pd.read_sql_query(query, self.connection)
+        print(df)
+        return df
+
+    # =================================================================
     # Close SQLite database connection
     # =================================================================
     def close(self):

@@ -14,6 +14,8 @@ from sklearn.preprocessing import LabelEncoder
 from underthesea import word_tokenize
 from datasets import Dataset
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, Trainer, TrainingArguments
+import NormalizeData
+import NLPRoleRecognitionConstants as constants
 
 # =================================================================
 # Fine-tune PhoBert for Role Recognition
@@ -27,6 +29,7 @@ class FinetunePhoBert:
     # =================================================================
     def __init__(self, model_name=MODEL_NAME):
         self.model_name = model_name
+        self.normalizeData = NormalizeData.NormalizeData()
 
     # =================================================================
     # Use underthesea for Vietnamese word segmentation
@@ -39,9 +42,12 @@ class FinetunePhoBert:
     # Load data from CSV file
     # =================================================================
     def loadData(self, path: str) -> pd.DataFrame:
-        # load data from CSV file
-        df = pd.read_csv(path)
-        return df
+        if path.strip():
+            # load data from CSV file
+            df = pd.read_csv(path)
+            return df
+        else:
+            return self.normalizeData.loadData()
 
     # =================================================================
     # Split data into training and testing sets based on conversation ID
@@ -75,7 +81,7 @@ class FinetunePhoBert:
     # =================================================================
     # Train the PhoBert model
     # =================================================================
-    def trainModel(self, path: str, output_dir: str = "./models", num_train_epochs: int = 5, batch_size: int = 8):
+    def trainModel(self, path: str, output_dir: str = constants.MODEL_DIR, num_train_epochs: int = 5, batch_size: int = 8):
 #        # Load and split the data
         train_df, test_df, le = self.splitByConversation(self.loadData(path))
         num_labels = len(le.classes_)
@@ -132,4 +138,4 @@ class FinetunePhoBert:
     # Train the PhoBert model
     # =================================================================
     def train(self):
-        pass
+        self.trainModel("")
