@@ -5,3 +5,4 @@
 # DATE: 2026
 # =================================================================
 MODEL_DIR = "./model"
+HF_TOKEN = "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"

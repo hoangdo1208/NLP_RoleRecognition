@@ -34,6 +34,7 @@ class TrainByContext:
     # =================================================================
     def __init__(self):
         self.normalizeData = NormalizeData.NormalizeData()
+        os.environ["HF_TOKEN"] = constants.HF_TOKEN
 
     # =================================================================
     # Segment text using underthesea for Vietnamese word segmentation

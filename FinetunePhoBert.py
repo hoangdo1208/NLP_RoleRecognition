@@ -30,6 +30,7 @@ class FinetunePhoBert:
     def __init__(self, model_name=MODEL_NAME):
         self.model_name = model_name
         self.normalizeData = NormalizeData.NormalizeData()
+        os.environ["HF_TOKEN"] = constants.HF_TOKEN
 
     # =================================================================
     # Use underthesea for Vietnamese word segmentation
@@ -82,7 +83,7 @@ class FinetunePhoBert:
     # Train the PhoBert model
     # =================================================================
     def trainModel(self, path: str, output_dir: str = constants.MODEL_DIR, num_train_epochs: int = 5, batch_size: int = 8):
-#        # Load and split the data
+        # Load and split the data
         train_df, test_df, le = self.splitByConversation(self.loadData(path))
         num_labels = len(le.classes_)
         print(f"Number of labels: {num_labels}, Classes: {le.classes_}")
@@ -102,7 +103,7 @@ class FinetunePhoBert:
         # Tokenize the datasets
         args = TrainingArguments(
             output_dir=output_dir,
-            evaluation_strategy="epoch",
+            eval_strategy="epoch",
             save_strategy="no",
             learning_rate=2e-5,
             per_device_train_batch_size=batch_size,
@@ -118,7 +119,7 @@ class FinetunePhoBert:
             args=args,
             train_dataset=train_dataset.map(tokenize_function, batched=True),
             eval_dataset=test_dataset.map(tokenize_function, batched=True),
-            tokenizer=tokenizer,
+            processing_class=tokenizer,
             compute_metrics=self.compute_metrics,
         )
 

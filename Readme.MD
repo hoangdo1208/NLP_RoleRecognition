@@ -33,7 +33,7 @@ python NLPRoleRecognition.py --option OPTION [--optionType OPTIONTYPE]
 | :----------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | TF-IDF                         | Train model với TF-IDF và Logistic Regression																														|
 | PhoBert                        | Train model với PhoBert (finetune PhoBert cho bài toán Role Recognition)																								|
-| Context                        | Train model với BiLSTM + Linear. Dùng PhoBert để trích vector																										|
+| BiLSTM                         | Train model với BiLSTM + Linear. Dùng PhoBert để trích vector																										|
 
 ### Bảng mô tả OPTIONTYPE (cho OPTION: Normalize)
 | Option                         |Mô Tả                                                                                                                                                                 |
