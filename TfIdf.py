@@ -14,6 +14,7 @@ from sklearn.model_selection import GroupShuffleSplit
 from sklearn.metrics import classification_report, confusion_matrix
 import NormalizeData
 import NLPRoleRecognitionConstants as constants
+import NLPRoleRecognitionCommon
 
 try:
     from underthesea import word_tokenize
@@ -35,6 +36,7 @@ class Tfidf:
     # =================================================================
     def __init__(self):
         self.normalizeData = NormalizeData.NormalizeData()
+        self.common = NLPRoleRecognitionCommon.NLPRoleRecognitionCommon()
 
     # =================================================================
     # Load data from CSV file
@@ -85,8 +87,8 @@ class Tfidf:
 
         # Save the vectorizer and model to disk
         os.makedirs(self.SAVE_DIR, exist_ok=True)
-        joblib.dump(vectorizer, os.path.join(self.SAVE_DIR, "vectorizer.joblib"))
-        joblib.dump(model, os.path.join(self.SAVE_DIR, "model.joblib"))
+        joblib.dump(vectorizer, os.path.join(self.SAVE_DIR, constants.TfIDF_VECTOR_FILE))
+        joblib.dump(model, os.path.join(self.SAVE_DIR, constants.TfIDF_MODEL_FILE))
         with open(os.path.join(self.SAVE_DIR, "labels.json"), "w", encoding="utf-8") as f:
             json.dump(labels, f, ensure_ascii=False, indent=4)
         print(f"Vectorizer and model saved to {self.SAVE_DIR}")
@@ -98,3 +100,21 @@ class Tfidf:
     # =================================================================
     def train(self):
         self.trainModel(self.loadData(""))
+
+    # =================================================================
+    # Predict the role in conversation file (.txt or .csv)
+    # =================================================================
+    def predict(self, conversation_file: str) -> pd.DataFrame:
+        # Load vectorizer and model from file
+        vectorizer = joblib.load(constants.TfIDF_VECTOR_FILE)
+        model = joblib.load(constants.TfIDF_MODEL_FILE)
+
+        # load conversation from file (.csv or .txt)
+        df = self.common.loadConversation(conversation_file)
+
+        # Transform text using the loaded vectorizer, then predict
+        X_transformed = vectorizer.transform(df['utterance'])
+        df['predicted_role'] = model.predict(X_transformed)
+
+        # return the predict result
+        return df

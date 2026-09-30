@@ -152,14 +152,14 @@ class TrainByContext:
         print(classification_report(y_true, y_pred, target_names=le.classes_), labels=range(len(le.classes_), zero_division=0))
 
         os.makedirs(self.SAVE_DIR, exist_ok=True)
-        torch.save(model.state_dict(), os.path.join(self.SAVE_DIR, "bilstm_role_tagger.pth"))
+        torch.save(model.state_dict(), os.path.join(self.SAVE_DIR, constants.BiLSTM_MODEL_FILE))
         config = {
             "model_name": self.MODEL_NAME,
             "hidden_size": self.LSM_HIDDEN_SIZE,
             "lsm_hidden_size": self.LSM_HIDDEN_SIZE,
             "labels": le.classes_.tolist(),
             }
-        with open(os.path.join(self.SAVE_DIR, "config.json"), "w", encoding="utf-8") as f:
+        with open(os.path.join(self.SAVE_DIR, constants.BiLSTM_CONFIG_FILE), "w", encoding="utf-8") as f:
             json.dump(config, f, ensure_ascii=False, indent=4)
         print(f"Model and configuration saved to {self.SAVE_DIR}")
 
@@ -168,3 +168,65 @@ class TrainByContext:
     # =================================================================
     def train(self):
         self.trainModel("", 5, 8)
+
+    # =================================================================
+    # Predict the role in conversation file (.txt or .csv)
+    # =================================================================
+    def predict(self, conversation_file: str) -> pd.DataFrame:
+        # Load vectorizer and model from file
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        config_path = os.path.join(self.SAVE_DIR, constants.BiLSTM_CONFIG_FILE)
+        with open(config_path, "r", encoding="utf-8") as f:
+            config = json.load(f)
+        model_name = config["model_name"]
+        lsm_hidden_size = config["lsm_hidden_size"]
+        labels = config["labels"]
+        le = LabelEncoder()
+        le.classes_ = np.array(labels)
+
+        # load conversation from file (.csv or .txt)
+        df = self.common.loadConversation(conversation_file)
+        df["utterance_seg"] = df["utterance"].apply(self.segmentText)
+
+        # Load Tokenizer & Encoder (PhoBERT)
+        tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=False)
+        encoder = AutoModel.from_pretrained(model_name).to(device)
+        encoder.eval()
+        hidden_size = encoder.config.hidden_size
+
+        # Extract embedding base on the context of the conversation
+        conversations = self.encodeUtterances(
+            self.buildConversationContext(df), tokenizer, encoder, device
+        )
+        embeddings, _ = self.collateConversation(conversations, hidden_size)
+        embeddings = embeddings.to(device)
+
+        # Init BiLSTM model & Load weights trained
+        model = BiLSTMRoleTagger(
+            input_size=hidden_size,
+            hidden_size=lsm_hidden_size,
+            num_labels=len(labels),
+        ).to(device)
+
+        model_weights_path = os.path.join(
+            self.SAVE_DIR, constants.BiLSTM_MODEL_FILE
+        )
+        model.load_state_dict(torch.load(model_weights_path, map_location=device))
+        model.eval()
+
+        # Predict
+        with torch.no_grad():
+            logits = model(embeddings)
+            predictions = torch.argmax(logits, dim=-1)
+
+        # map to original role
+        pred_indices = []
+        for i, conv in enumerate(conversations):
+            seq_len = len(conv["utterances"])
+            conv_preds = predictions[i, :seq_len].cpu().numpy()
+            pred_indices.extend(conv_preds)
+
+        df["predicted_role"] = le.inverse_transform(pred_indices)
+
+        # return the predict result
+        return df

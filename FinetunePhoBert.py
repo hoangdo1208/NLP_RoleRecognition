@@ -6,6 +6,7 @@
 # =================================================================
 import json
 import os
+import torch
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import GroupShuffleSplit
@@ -131,7 +132,7 @@ class FinetunePhoBert:
         # Save the model and tokenizer
         trainer.save_model(output_dir)
         tokenizer.save_pretrained(output_dir)
-        with open(os.path.join(output_dir, "label_encoder.json"), "w") as f:
+        with open(os.path.join(output_dir, constants.PhoBERT_LABEL_ENCODER), "w") as f:
             json.dump(list(le.classes_), f, ensure_ascii=False)  # Save the label encoder classes for later use
         print(f"Model and tokenizer saved to {output_dir}")
 
@@ -140,3 +141,62 @@ class FinetunePhoBert:
     # =================================================================
     def train(self):
         self.trainModel("")
+
+    # =================================================================
+    # Predict the role in conversation file (.txt or .csv)
+    # =================================================================
+    def predict(self, conversation_file: str, model_dir: str = constants.MODEL_DIR, batch_size: int = 8) -> pd.DataFrame:
+        # Load vectorizer and model from file
+        tokenizer = AutoTokenizer.from_pretrained(model_dir, use_fast=False)
+        model = AutoModelForSequenceClassification.from_pretrained(model_dir)
+
+        # if not found GPU, change to CPU instead
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        model.to(device)
+        model.eval()
+
+        # load label encoder saved before
+        label_encoder_path = os.path.join(model_dir, constants.PhoBERT_LABEL_ENCODER)
+        with open(label_encoder_path, "r", encoding="utf-8") as f:
+            classes = json.load(f)
+
+        # load conversation from file (.csv or .txt)
+        df = self.common.loadConversation(conversation_file)
+
+        # apply segmentation to the utterance column
+        df['utterance_seg'] = df['utterance'].apply(self.segmentText)  # Apply segmentation to the utterance column
+
+        # pre processing
+        def tokenize_function(batch):
+            return tokenizer(
+                batch["utterance_seg"],
+                padding="max_length",
+                truncation=True,
+                max_length=64,
+            )
+        dataset = Dataset.from_pandas(df)
+        tokenized_dataset = dataset.map(tokenize_function, batched=True)
+
+        # Predict
+        predictions = []
+        for i in range(0, len(tokenized_dataset), batch_size):
+            batch = tokenized_dataset[i : i + batch_size]
+
+            # Input data to tensor and processing (CPU/GPU)
+            inputs = {
+                "input_ids": torch.tensor(batch["input_ids"]).to(device),
+                "attention_mask": torch.tensor(batch["attention_mask"]).to(device),
+            }
+
+            with torch.no_grad():
+                outputs = model(**inputs)
+                logits = outputs.logits
+                preds = torch.argmax(logits, dim=-1).cpu().numpy()
+
+            predictions.extend(preds)
+
+        # Map from label to role
+        df["predicted_role"] = [classes[pred] for pred in predictions]
+
+        # return the predict result
+        return df

@@ -5,4 +5,9 @@
 # DATE: 2026
 # =================================================================
 MODEL_DIR = "./model"
-HF_TOKEN = "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"
+HF_TOKEN = ""
+TfIDF_VECTOR_FILE = "tfidf_vectorizer.pkl"
+TfIDF_MODEL_FILE = "logistic_regression_model.pkl"
+PhoBERT_LABEL_ENCODER = "PhoBert_Label_Encoder.json"
+BiLSTM_MODEL_FILE = "bilstm_role_tagger.pth"
+BiLSTM_CONFIG_FILE = "bilstm_config.json"
