@@ -89,7 +89,7 @@ class Tfidf:
         os.makedirs(self.SAVE_DIR, exist_ok=True)
         joblib.dump(vectorizer, os.path.join(self.SAVE_DIR, constants.TfIDF_VECTOR_FILE))
         joblib.dump(model, os.path.join(self.SAVE_DIR, constants.TfIDF_MODEL_FILE))
-        with open(os.path.join(self.SAVE_DIR, "labels.json"), "w", encoding="utf-8") as f:
+        with open(os.path.join(self.SAVE_DIR, constants.TfIDF_LABEL_FILE), "w", encoding="utf-8") as f:
             json.dump(labels, f, ensure_ascii=False, indent=4)
         print(f"Vectorizer and model saved to {self.SAVE_DIR}")
 

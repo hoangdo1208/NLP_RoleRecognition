@@ -6,6 +6,7 @@
 # =================================================================
 MODEL_DIR = "./model"
 HF_TOKEN = ""
+TfIDF_LABEL_FILE = "tfidf_labels.json"
 TfIDF_VECTOR_FILE = "tfidf_vectorizer.pkl"
 TfIDF_MODEL_FILE = "logistic_regression_model.pkl"
 PhoBERT_LABEL_ENCODER = "PhoBert_Label_Encoder.json"
