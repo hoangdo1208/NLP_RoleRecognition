@@ -113,7 +113,7 @@ class Tfidf:
         df = self.common.loadConversation(conversation_file)
 
         # Transform text using the loaded vectorizer, then predict
-        X_transformed = vectorizer.transform(df['utterance'])
+        X_transformed = vectorizer.transform(df['utterance'].fillna(''))
         df['predicted_role'] = model.predict(X_transformed)
 
         # return the predict result

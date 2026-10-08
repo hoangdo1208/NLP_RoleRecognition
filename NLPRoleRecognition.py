@@ -39,11 +39,11 @@ class NLPRoleRecognition:
     # =================================================================
     def main(self):
         args = self.parse_arguments()
-        args.option = args.option.capitalize()
+        #args.option = args.option.capitalize()
         #args.optionType = args.optionType.capitalize()
 
-        if args.option not in ["Train", "Predict", "Normalize"]:
-            print("Invalid option. Please specify either 'Train' or 'Predict' or 'Normalize'.")
+        if args.option not in ["Train", "Normalize", "TF-IDF", "PhoBert", "BiLSTM"]:
+            print("Invalid option. Please specify either 'Train' or 'Normalize' or 'TF-IDF' or 'PhoBert' or 'BiLSTM'.")
             return
 
         match args.option:
