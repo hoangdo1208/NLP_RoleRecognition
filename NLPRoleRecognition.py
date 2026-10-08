@@ -72,11 +72,11 @@ class NLPRoleRecognition:
 
                 # process predict
                 if args.optionType.endswith(".csv") or args.optionType.endswith(".txt"):
-                    if args.optionType == "TF-IDF":
+                    if args.option == "TF-IDF":
                         print(self.tfidf_model.predict(args.optionType))
-                    elif args.optionType == "PhoBert":
+                    elif args.option == "PhoBert":
                         print(self.finetune_phobert.predict(args.optionType))
-                    elif args.optionType == "BiLSTM":
+                    elif args.option == "BiLSTM":
                         print(self.train_by_context.predict(args.optionType))
                 else:
                     print("Invalid file format for prediction. Please provide a .csv or .txt file.")
