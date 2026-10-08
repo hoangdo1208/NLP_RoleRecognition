@@ -1,0 +1,9 @@
+{
+    "model_name": "vinai/phobert-base",
+    "hidden_size": 768,
+    "lsm_hidden_size": 128,
+    "labels": [
+        "assistant",
+        "user"
+    ]
+}

@@ -18,6 +18,7 @@ from transformers import AutoTokenizer, AutoModel
 import BiLSTMRoleTagger as BiLSTMRoleTagger
 import NormalizeData
 import NLPRoleRecognitionConstants as constants
+from torch.utils.data import DataLoader, TensorDataset
 
 # =================================================================
 # Process of train: utterance -> PhoBert (encoder) -> vector for each utterance -> BiLSTM -> Linear -> output (role)
@@ -75,13 +76,27 @@ class TrainByContext:
     # Pad the embeddings and labels to create uniform batch sizes for training
     # =================================================================
     def collateConversation(self, conversations, hidden_size):
-        max_len = max(len(conv['labels']) for conv in conversations)
-        batch_embeddings = torch.zeros((len(conversations), max_len, hidden_size))
-        batch_labels = torch.full((len(conversations), max_len), self.PAD_LABEL, dtype=torch.long)
+        batch_size = len(conversations)
+        max_len = max(len(conv["embeddings"]) for conv in conversations)
+
+        # Pre-allocate zero tensors
+        batch_embeddings = torch.zeros(batch_size, max_len, hidden_size)
+        batch_labels = torch.full(
+            (batch_size, max_len), self.PAD_LABEL, dtype=torch.long
+        )
+
         for i, conv in enumerate(conversations):
-            length = len(conv['labels'])
-            batch_embeddings[i, :length] = conv['embeddings']
-            batch_labels[i, :length] = torch.tensor(conv['labels'], dtype=torch.long)
+            embeddings = conv["embeddings"]
+
+            # Ensure embeddings are a Torch Tensor
+            if isinstance(embeddings, np.ndarray):
+                embeddings = torch.from_numpy(embeddings)
+
+            length = len(embeddings)
+            batch_embeddings[i, :length] = embeddings
+            batch_labels[i, :length] = torch.tensor(
+                conv["labels"], dtype=torch.long
+            )
 
         return batch_embeddings, batch_labels
 
@@ -89,78 +104,153 @@ class TrainByContext:
     # train the BiLSTM model for role tagging using the embeddings and labels
     # =================================================================
     def trainModel(self, path: str, num_train_epochs: int = 5, batch_size: int = 8):
-        # device configuration
+        # Device configuration
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        # Load and split the data
-        if path.strip():
+        # Load data
+        if path and path.strip():
             df = pd.read_csv(path)
         else:
             df = self.normalizeData.loadData()
-        df['utterance_seg'] = df['utterance'].apply(self.segmentText)  # Apply segmentation to the utterance column
+
+        # Apply segmentation and label encoding
+        df["utterance_seg"] = df["utterance"].apply(self.segmentText)
         le = LabelEncoder()
-        df['label'] = le.fit_transform(df['role'])  # Encode the role labels
+        df["label"] = le.fit_transform(df["role"])
         print(f"Number of labels: {len(le.classes_)}, Classes: {le.classes_}")
 
-        # Split data into training and testing sets based on conversation ID
+        # Split data into train and test sets based on conversation ID
         gss = GroupShuffleSplit(n_splits=1, test_size=0.3, random_state=42)
-        train_idx, test_idx = next(gss.split(df, groups=df['conv_id']))
+        train_idx, test_idx = next(gss.split(df, groups=df["conv_id"]))
         train_df = df.iloc[train_idx].reset_index(drop=True)
         test_df = df.iloc[test_idx].reset_index(drop=True)
 
-        tokenizer = AutoTokenizer.from_pretrained(self.MODEL_NAME, use_fast=False)  # PhoBert uses a slow tokenizer
-        encoder = AutoModel.from_pretrained(self.MODEL_NAME).to(device)  # Load PhoBert encoder and move to device
-        hidden_size = encoder.config.hidden_size  # Get the hidden size of the encoder
+        # Load tokenizer and backbone encoder model
+        tokenizer = AutoTokenizer.from_pretrained(
+            self.MODEL_NAME, use_fast=False
+        )  # PhoBert uses a slow tokenizer
+        encoder = AutoModel.from_pretrained(self.MODEL_NAME).to(device)
+        hidden_size = encoder.config.hidden_size
 
-        # Build conversation context for training and testing sets
-        train_conversations = self.encodeUtterances(self.buildConversationContext(train_df), tokenizer, encoder, device)
-        test_conversations = self.encodeUtterances(self.buildConversationContext(test_df), tokenizer, encoder, device)
+        # Build conversation contexts and extract sequence embeddings
+        train_conversations = self.encodeUtterances(
+            self.buildConversationContext(train_df), tokenizer, encoder, device
+        )
+        test_conversations = self.encodeUtterances(
+            self.buildConversationContext(test_df), tokenizer, encoder, device
+        )
 
-        # Build training and testing datasets by collating embeddings and labels
-        train_embeddings, train_labels = self.collateConversation(train_conversations, hidden_size)
-        test_embeddings, test_labels = self.collateConversation(test_conversations, hidden_size)
+        # Collate embeddings and labels
+        train_embeddings, train_labels = self.collateConversation(
+            train_conversations, hidden_size
+        )
+        test_embeddings, test_labels = self.collateConversation(
+            test_conversations, hidden_size
+        )
 
-        # Initialize the BiLSTM model for role tagging
-        model = BiLSTMRoleTagger(input_size=hidden_size, hidden_size=self.LSM_HIDDEN_SIZE, num_labels=len(le.classes_)).to(device)
+        # Create PyTorch DataLoaders to handle batching properly
+        train_dataset = TensorDataset(train_embeddings, train_labels)
+        train_loader = DataLoader(
+            train_dataset, batch_size=batch_size, shuffle=True
+        )
+
+        test_dataset = TensorDataset(test_embeddings, test_labels)
+        test_loader = DataLoader(
+            test_dataset, batch_size=batch_size, shuffle=False
+        )
+
+        # Initialize BiLSTM role tagger model
+        # Note: Use self.LSTM_HIDDEN_SIZE (or self.LSM_HIDDEN_SIZE if that is your exact property name)
+        lstm_hidden_size = getattr(
+            self, "LSTM_HIDDEN_SIZE", getattr(self, "LSM_HIDDEN_SIZE", 128)
+        )
+        model = BiLSTMRoleTagger.BiLSTMRoleTagger(
+            input_size=hidden_size,
+            hidden_size=lstm_hidden_size,
+            num_labels=len(le.classes_),
+        ) #.to(device)
+
         optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
-        criterion = nn.CrossEntropyLoss(ignore_index=self.PAD_LABEL)  # Ignore padding labels in loss computation
+        criterion = nn.CrossEntropyLoss(
+            ignore_index=self.PAD_LABEL
+        )  # Ignore padding labels in loss computation
 
-        # convert embeddings and labels to device
-        train_embeddings, train_labels = train_embeddings.to(device), train_labels.to(device)
-        test_embeddings, test_labels = test_embeddings.to(device), test_labels.to(device)
-
+        # Training loop using mini-batches
+        model.train()
         for epoch in range(num_train_epochs):
-            model.train()
-            optimizer.zero_grad()
-            logits = model(train_embeddings)
-            loss = criterion(logits.view(-1, logits.size(-1)), train_labels.view(-1))
-            loss.backward()
-            optimizer.step()
-            if (epoch + 1) % 1 == 0:
-                print(f"Epoch [{epoch + 1}/{num_train_epochs}], Loss: {loss.item():.4f}")
+            total_loss = 0.0
+            for batch_embeddings, batch_labels in train_loader:
+                batch_embeddings = batch_embeddings.to(device)
+                batch_labels = batch_labels.to(device)
 
+                optimizer.zero_grad()
+                logits = model(batch_embeddings)
+
+                # Flatten batch and sequence dimensions for CrossEntropyLoss
+                loss = criterion(
+                    logits.view(-1, logits.size(-1)), batch_labels.view(-1)
+                )
+                loss.backward()
+                optimizer.step()
+
+                total_loss += loss.item()
+
+            avg_loss = total_loss / len(train_loader)
+            print(
+                f"Epoch [{epoch + 1}/{num_train_epochs}], Train Loss: {avg_loss:.4f}"
+            )
+
+        # Evaluation loop
         model.eval()
+        all_preds = []
+        all_targets = []
+
         with torch.no_grad():
-            logits = model(test_embeddings)
-            predictions = torch.argmax(logits, dim=-1)
+            for batch_embeddings, batch_labels in test_loader:
+                batch_embeddings = batch_embeddings.to(device)
+                batch_labels = batch_labels.to(device)
 
-        mask = test_labels != self.PAD_LABEL
-        y_true = test_labels[mask].cpu().numpy()
-        y_pred = predictions[mask].cpu().numpy()
+                logits = model(batch_embeddings)
+                predictions = torch.argmax(logits, dim=-1)
 
-        print("Classification Report:")
-        print(classification_report(y_true, y_pred, target_names=le.classes_), labels=range(len(le.classes_), zero_division=0))
+                # Filter out padded tokens
+                mask = batch_labels != self.PAD_LABEL
+                all_preds.extend(predictions[mask].cpu().numpy())
+                all_targets.extend(batch_labels[mask].cpu().numpy())
 
+        # Fix: Correctly closed parentheses on classification_report call
+        print("\nClassification Report:")
+        print(
+            classification_report(
+                all_targets,
+                all_preds,
+                target_names=le.classes_,
+                labels=range(len(le.classes_)),
+                zero_division=0,
+            )
+        )
+
+        # Save model checkpoint and metadata configuration
         os.makedirs(self.SAVE_DIR, exist_ok=True)
-        torch.save(model.state_dict(), os.path.join(self.SAVE_DIR, constants.BiLSTM_MODEL_FILE))
+        torch.save(
+            model.state_dict(),
+            os.path.join(self.SAVE_DIR, constants.BiLSTM_MODEL_FILE),
+        )
+
         config = {
             "model_name": self.MODEL_NAME,
-            "hidden_size": self.LSM_HIDDEN_SIZE,
-            "lsm_hidden_size": self.LSM_HIDDEN_SIZE,
+            "hidden_size": hidden_size,
+            "lsm_hidden_size": lstm_hidden_size,
             "labels": le.classes_.tolist(),
-            }
-        with open(os.path.join(self.SAVE_DIR, constants.BiLSTM_CONFIG_FILE), "w", encoding="utf-8") as f:
+        }
+
+        with open(
+            os.path.join(self.SAVE_DIR, constants.BiLSTM_CONFIG_FILE),
+            "w",
+            encoding="utf-8",
+        ) as f:
             json.dump(config, f, ensure_ascii=False, indent=4)
+
         print(f"Model and configuration saved to {self.SAVE_DIR}")
 
     # =================================================================
