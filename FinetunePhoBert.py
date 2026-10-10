@@ -17,6 +17,7 @@ from datasets import Dataset
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, Trainer, TrainingArguments
 import NormalizeData
 import NLPRoleRecognitionConstants as constants
+import NLPRoleRecognitionCommon
 
 # =================================================================
 # Fine-tune PhoBert for Role Recognition
@@ -32,6 +33,7 @@ class FinetunePhoBert:
         self.model_name = model_name
         self.normalizeData = NormalizeData.NormalizeData()
         os.environ["HF_TOKEN"] = constants.HF_TOKEN
+        self.common = NLPRoleRecognitionCommon.NLPRoleRecognitionCommon()
 
     # =================================================================
     # Use underthesea for Vietnamese word segmentation

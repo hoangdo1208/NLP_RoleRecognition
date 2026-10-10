@@ -106,8 +106,8 @@ class Tfidf:
     # =================================================================
     def predict(self, conversation_file: str) -> pd.DataFrame:
         # Load vectorizer and model from file
-        vectorizer = joblib.load(constants.TfIDF_VECTOR_FILE)
-        model = joblib.load(constants.TfIDF_MODEL_FILE)
+        vectorizer = joblib.load(f"{constants.MODEL_DIR}/{constants.TfIDF_VECTOR_FILE}")
+        model = joblib.load(f"{constants.MODEL_DIR}/{constants.TfIDF_MODEL_FILE}")
 
         # load conversation from file (.csv or .txt)
         df = self.common.loadConversation(conversation_file)
