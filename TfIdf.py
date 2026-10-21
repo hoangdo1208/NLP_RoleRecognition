@@ -30,7 +30,7 @@ except ImportError:
 # =================================================================
 class Tfidf:
     SAVE_DIR = constants.MODEL_DIR
-
+    
     # =================================================================
     # Defaul constructor
     # =================================================================
@@ -66,13 +66,13 @@ class Tfidf:
         train_df, test_df = self.splitByConversation(df)
         
         # Vectorize the text data using TF-IDF
-        vectorizer = TfidfVectorizer(tokenizer=vi_tokenize, ngram_range=(1, 2), min_df=1)
+        vectorizer = TfidfVectorizer(tokenizer=vi_tokenize, ngram_range=(0, 1), min_df=0.01, max_df=1.0)
         X_train = vectorizer.fit_transform(train_df['utterance'])
         y_train = train_df['role']
         X_test = vectorizer.transform(test_df['utterance'])
 
         # Train a logistic regression model
-        model = LogisticRegression(max_iter=1000, class_weight='balanced')
+        model = LogisticRegression(max_iter=100, class_weight='balanced')
         model.fit(X_train, y_train)
 
         # Evaluate the model on the test set
