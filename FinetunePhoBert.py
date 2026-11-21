@@ -57,6 +57,8 @@ class FinetunePhoBert:
     # Split data into training and testing sets based on conversation ID
     # =================================================================
     def splitByConversation(self, df: pd.DataFrame, test_size=0.3, random_state=42) -> tuple[pd.DataFrame, pd.DataFrame, LabelEncoder]:
+        # Remove Duplicates
+        df = df.drop_duplicates(subset=["conv_id", "turn_id"], keep="first").reset_index(drop=True)
     
         # apply segmentation to the utterance column
         df['utterance_seg'] = df['utterance'].apply(self.segmentText)  # Apply segmentation to the utterance column

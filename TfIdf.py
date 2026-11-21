@@ -52,6 +52,10 @@ class Tfidf:
     # Split data into training and testing sets based on conversation ID
     # =================================================================
     def splitByConversation(self, df: pd.DataFrame, test_size=0.3, random_state=42) -> tuple[pd.DataFrame, pd.DataFrame]:
+        # Remove Duplicates
+        df = df.drop_duplicates(subset=["conv_id", "turn_id"], keep="first").reset_index(drop=True)
+
+        # Split the data into training and testing sets based on conversation ID
         gss = GroupShuffleSplit(n_splits=1, test_size=test_size, random_state=random_state)
         train_idx, test_idx = next(gss.split(df, groups=df['conv_id']))
         train_df = df.iloc[train_idx]

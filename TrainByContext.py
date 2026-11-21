@@ -115,6 +115,9 @@ class TrainByContext:
         else:
             df = self.normalizeData.loadData()
 
+        # Remove Duplicates
+        df = df.drop_duplicates(subset=["conv_id", "turn_id"], keep="first").reset_index(drop=True)
+
         # Apply segmentation and label encoding
         df["utterance_seg"] = df["utterance"].apply(self.segmentText)
         le = LabelEncoder()
